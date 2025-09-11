@@ -1,0 +1,26 @@
+---
+# Source: sentry/templates/snuba/service-snuba.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-snuba
+  annotations:
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: snuba
+    app.kubernetes.io/version: "25.8.0"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 1218
+      targetPort: 1218
+      protocol: TCP
+      name: sentry
+  selector:
+    app: sentry
+    role: snuba-api

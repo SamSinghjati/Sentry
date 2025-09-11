@@ -1,0 +1,119 @@
+---
+# Source: sentry/charts/clickhouse/templates/statefulset-clickhouse.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sentry-clickhouse
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: sentry
+spec:
+  replicas: 1
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: sentry-clickhouse-headless
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse
+      app.kubernetes.io/instance: sentry
+  template:
+    metadata:
+      annotations:
+        checksum/config: d09a609b7a25c613887fb4e96d1df2a0fc201daabf1146f35aa01d0d804cf520
+        prometheus.io/port: "9116"
+        prometheus.io/scrape: "true"
+      labels:
+        app.kubernetes.io/name: clickhouse
+        app.kubernetes.io/instance: sentry
+    spec:
+      containers:
+        - name: sentry-clickhouse
+          image: clickhouse/clickhouse-server:23.8.16.16
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - export SHARD=${HOSTNAME##*-} && /entrypoint.sh
+          ports:
+            - name: metrics
+              containerPort: 9116
+              protocol: TCP
+            - name: http-port
+              containerPort: 8123
+            - name: tcp-port
+              containerPort: 9000
+            - name: inter-http-port
+              containerPort: 9009
+          startupProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds:
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+            successThreshold: 1
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 0
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 0
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          volumeMounts:
+            - name: sentry-clickhouse-data
+              mountPath: /var/lib/clickhouse
+            - name: sentry-clickhouse-logs
+              mountPath: /var/log/clickhouse-server
+            - name: sentry-clickhouse-config
+              mountPath: /etc/clickhouse-server/config.d
+            - name: sentry-clickhouse-metrica
+              mountPath: /etc/clickhouse-server/metrica.d
+            - name: sentry-clickhouse-users
+              mountPath: /etc/clickhouse-server/users.d
+      volumes:
+        - name: sentry-clickhouse-data
+          persistentVolumeClaim:
+            claimName: sentry-clickhouse-data
+        - name: sentry-clickhouse-logs
+          emptyDir: {}
+        - name: sentry-clickhouse-config
+          configMap:
+            name: sentry-clickhouse-config
+            items:
+              - key: config.xml
+                path: config.xml
+        - name: sentry-clickhouse-metrica
+          configMap:
+            name: sentry-clickhouse-metrica
+            items:
+              - key: metrica.xml
+                path: metrica.xml
+        - name: sentry-clickhouse-users
+          configMap:
+            name: sentry-clickhouse-users
+            items:
+              - key: users.xml
+                path: users.xml
+  volumeClaimTemplates:
+    - metadata:
+        name: sentry-clickhouse-data
+        labels:
+          app.kubernetes.io/name: clickhouse-data
+          app.kubernetes.io/instance: sentry-data
+          app.kubernetes.io/managed-by: Helm
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "30Gi"

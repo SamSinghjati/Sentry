@@ -1,0 +1,204 @@
+---
+# Source: sentry/charts/kafka/templates/controller-eligible/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sentry-kafka-controller
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/version: 3.7.1
+    app.kubernetes.io/component: controller-eligible
+    app.kubernetes.io/part-of: kafka
+spec:
+  podManagementPolicy: Parallel
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: sentry
+      app.kubernetes.io/name: kafka
+      app.kubernetes.io/component: controller-eligible
+      app.kubernetes.io/part-of: kafka
+  serviceName: sentry-kafka-controller-headless
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: sentry
+        app.kubernetes.io/name: kafka
+        app.kubernetes.io/version: 3.7.1
+        app.kubernetes.io/component: controller-eligible
+        app.kubernetes.io/part-of: kafka
+      annotations:
+        checksum/configuration: a108dffd12bcbc3408d81e2b5bcc844519c43983726095286ebfc4178ac775de
+    spec:
+      automountServiceAccountToken: false
+      hostNetwork: false
+      hostIPC: false
+      affinity:
+        podAffinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: sentry
+                    app.kubernetes.io/name: kafka
+                    app.kubernetes.io/component: controller-eligible
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: Always
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups: []
+        sysctls: []
+      serviceAccountName: sentry-kafka
+      enableServiceLinks: true
+      initContainers:
+        - name: kafka-init
+          image: docker.io/bitnamilegacy/kafka:3.7.1-debian-12-r4
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: {}
+          resources:
+            limits: {}
+            requests: {}
+          command:
+            - /bin/bash
+          args:
+            - -ec
+            - |
+              /scripts/kafka-init.sh
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KAFKA_VOLUME_DIR
+              value: "/bitnami/kafka"
+            - name: KAFKA_MIN_ID
+              value: "0"
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/kafka
+            - name: kafka-config
+              mountPath: /config
+            - name: kafka-configmaps
+              mountPath: /configmaps
+            - name: kafka-secret-config
+              mountPath: /secret-config
+            - name: scripts
+              mountPath: /scripts
+            - name: tmp
+              mountPath: /tmp
+      containers:
+        - name: kafka
+          image: docker.io/bitnamilegacy/kafka:3.7.1-debian-12-r4
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: {}
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: KAFKA_HEAP_OPTS
+              value: "-Xmx1024m -Xms1024m"
+            - name: KAFKA_KRAFT_CLUSTER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-kafka-kraft-cluster-id
+                  key: kraft-cluster-id
+          ports:
+            - name: controller
+              containerPort: 9093
+            - name: client
+              containerPort: 9092
+            - name: interbroker
+              containerPort: 9094
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            exec:
+              command:
+                - pgrep
+                - -f
+                - kafka
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+            tcpSocket:
+              port: "controller"
+          resources:
+            limits:
+              cpu: 750m
+              ephemeral-storage: 2Gi
+              memory: 768Mi
+            requests:
+              cpu: 500m
+              ephemeral-storage: 50Mi
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/kafka
+            - name: logs
+              mountPath: /opt/bitnami/kafka/logs
+            - name: kafka-config
+              mountPath: /opt/bitnami/kafka/config/server.properties
+              subPath: server.properties
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: kafka-configmaps
+          configMap:
+            name: sentry-kafka-controller-configuration
+        - name: kafka-secret-config
+          emptyDir: {}
+        - name: kafka-config
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: scripts
+          configMap:
+            name: sentry-kafka-scripts
+            defaultMode: 493
+        - name: logs
+          emptyDir: {}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: data
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"

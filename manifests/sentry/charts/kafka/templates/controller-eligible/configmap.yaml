@@ -1,0 +1,35 @@
+---
+# Source: sentry/charts/kafka/templates/controller-eligible/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentry-kafka-controller-configuration
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/version: 3.7.1
+    app.kubernetes.io/component: controller-eligible
+    app.kubernetes.io/part-of: kafka
+data:
+  server.properties: |-
+    # Listeners configuration
+    listeners=CLIENT://:9092,INTERNAL://:9094,CONTROLLER://:9093
+    advertised.listeners=CLIENT://advertised-address-placeholder:9092,INTERNAL://advertised-address-placeholder:9094
+    listener.security.protocol.map=CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+    # KRaft process roles
+    process.roles=controller,broker
+    #node.id=
+    controller.listener.names=CONTROLLER
+    controller.quorum.voters=0@sentry-kafka-controller-0.sentry-kafka-controller-headless.sentry.svc.cluster.local:9093,1@sentry-kafka-controller-1.sentry-kafka-controller-headless.sentry.svc.cluster.local:9093,2@sentry-kafka-controller-2.sentry-kafka-controller-headless.sentry.svc.cluster.local:9093
+    # Kafka data logs directory
+    log.dir=/bitnami/kafka/data
+    # Kafka application logs directory
+    logs.dir=/opt/bitnami/kafka/logs
+
+    # Common Kafka Configuration
+
+    # Interbroker configuration
+    inter.broker.listener.name=INTERNAL
+
+    # Custom Kafka Configuration

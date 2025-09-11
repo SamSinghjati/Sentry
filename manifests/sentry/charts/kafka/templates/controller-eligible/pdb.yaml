@@ -1,0 +1,21 @@
+---
+# Source: sentry/charts/kafka/templates/controller-eligible/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sentry-kafka-controller
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/version: 3.7.1
+    app.kubernetes.io/component: controller-eligible
+    app.kubernetes.io/part-of: kafka
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: sentry
+      app.kubernetes.io/name: kafka
+      app.kubernetes.io/component: controller-eligible
+      app.kubernetes.io/part-of: kafka

@@ -1,0 +1,42 @@
+---
+# Source: sentry/charts/clickhouse/templates/configmap-metrika.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentry-clickhouse-metrica
+  labels:
+    app.kubernetes.io/name: clickhouse-metrica
+    app.kubernetes.io/instance: sentry-metrica
+data:
+  metrica.xml: |-
+    <?xml version="1.0"?>
+    <yandex>
+        <zookeeper-servers>
+            <node index="clickhouse">
+                <host>sentry-zookeeper-clickhouse</host>
+                <port>2181</port>
+            </node>
+            <session_timeout_ms>30000</session_timeout_ms>
+            <operation_timeout_ms>10000</operation_timeout_ms>
+            <root></root>
+            <identity></identity>
+        </zookeeper-servers>
+        <clickhouse_remote_servers>
+            <sentry-clickhouse>
+                <shard>
+                    <internal_replication>true</internal_replication>
+                    <replica>
+                        <host>sentry-clickhouse-0.sentry-clickhouse-headless.sentry.svc.cluster.local</host>
+                        <port>9000</port>
+                        <user>default</user>
+                        <compression>true</compression>
+                    </replica>
+                </shard>
+            </sentry-clickhouse>
+        </clickhouse_remote_servers>
+
+        <macros>
+            <replica from_env="HOSTNAME"></replica>
+            <shard from_env="SHARD"></shard>
+        </macros>
+    </yandex>

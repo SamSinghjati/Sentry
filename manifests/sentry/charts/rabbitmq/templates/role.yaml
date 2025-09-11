@@ -1,0 +1,18 @@
+---
+# Source: sentry/charts/rabbitmq/templates/role.yaml
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: sentry-rabbitmq-endpoint-reader
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/version: "3.11.18"
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]

@@ -1,0 +1,159 @@
+---
+# Source: sentry/templates/snuba/configmap-snuba.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentry-snuba
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: snuba
+    app.kubernetes.io/version: "25.8.0"
+data:
+  settings.py: |
+    import os
+
+    from snuba.settings import *
+
+    env = os.environ.get
+
+    DEBUG = env("DEBUG", "0").lower() in ("1", "true")
+
+    # Set partition counts for provisioning topics from kafka chart.
+    TOPIC_PARTITION_COUNTS = {
+      "events": 1,
+      "event-replacements": 1,
+      "snuba-commit-log": 1,
+      "cdc": 1,
+      "transactions": 1,
+      "snuba-transactions-commit-log": 1,
+      "snuba-metrics": 1,
+      "outcomes": 1,
+      "outcomes-dlq": 1,
+      "outcomes-billing": 1,
+      "outcomes-billing-dlq": 1,
+      "ingest-sessions": 1,
+      "snuba-metrics-commit-log": 1,
+      "scheduled-subscriptions-events": 1,
+      "scheduled-subscriptions-transactions": 1,
+      "scheduled-subscriptions-metrics": 1,
+      "scheduled-subscriptions-generic-metrics-sets": 1,
+      "scheduled-subscriptions-generic-metrics-distributions": 1,
+      "scheduled-subscriptions-generic-metrics-counters": 1,
+      "scheduled-subscriptions-generic-metrics-gauges": 1,
+      "events-subscription-results": 1,
+      "transactions-subscription-results": 1,
+      "metrics-subscription-results": 1,
+      "generic-metrics-subscription-results": 1,
+      "snuba-queries": 1,
+      "processed-profiles": 1,
+      "profiles-call-tree": 1,
+      "snuba-profile-chunks": 1,
+      "ingest-replay-events": 1,
+      "snuba-generic-metrics": 1,
+      "snuba-generic-metrics-sets-commit-log": 1,
+      "snuba-generic-metrics-distributions-commit-log": 1,
+      "snuba-generic-metrics-counters-commit-log": 1,
+      "snuba-generic-metrics-gauges-commit-log": 1,
+      "generic-events": 1,
+      "snuba-generic-events-commit-log": 1,
+      "group-attributes": 1,
+      "snuba-dead-letter-metrics": 1,
+      "snuba-dead-letter-generic-metrics": 1,
+      "snuba-dead-letter-replays": 1,
+      "snuba-dead-letter-generic-events": 1,
+      "snuba-dead-letter-querylog": 1,
+      "snuba-dead-letter-group-attributes": 1,
+      "ingest-attachments": 1,
+      "ingest-attachments-dlq": 1,
+      "ingest-transactions": 1,
+      "ingest-transactions-dlq": 1,
+      "ingest-transactions-backlog": 1,
+      "ingest-events-dlq": 1,
+      "ingest-events": 1,
+      "ingest-replay-recordings": 1,
+      "ingest-metrics": 1,
+      "ingest-metrics-dlq": 1,
+      "ingest-performance-metrics": 1,
+      "ingest-feedback-events": 1,
+      "ingest-feedback-events-dlq": 1,
+      "ingest-monitors": 1,
+      "monitors-clock-tasks": 1,
+      "monitors-clock-tick": 1,
+      "monitors-incident-occurrences": 1,
+      "profiles": 1,
+      "ingest-occurrences": 1,
+      "snuba-spans": 1,
+      "snuba-eap-spans-commit-log": 1,
+      "scheduled-subscriptions-eap-spans": 1,
+      "eap-spans-subscription-results": 1,
+      "snuba-eap-mutations": 1,
+      "snuba-lw-deletions-generic-events": 1,
+      "shared-resources-usage": 1,
+      "snuba-profile-chunks": 1,
+      "buffered-segments": 1,
+      "buffered-segments-dlq": 1,
+      "uptime-configs": 1,
+      "uptime-results": 1,
+      "snuba-uptime-results": 1,
+      "task-worker": 1,
+      "snuba-ourlogs": 1,
+    }
+
+    # Clickhouse Options
+    CLUSTERS = [
+      {
+        "host": env("CLICKHOUSE_HOST", "sentry-clickhouse"),
+        "port": int(9000),
+        "secure": env("CLICKHOUSE_SECURE", False),
+        "ca_certs": env("CLICKHOUSE_CA_CERTS", None),
+        "verify": env("CLICKHOUSE_VERIFY", False),
+        "user":  env("CLICKHOUSE_USER", "default"),
+        "password": env("CLICKHOUSE_PASSWORD", ""),
+        "max_connections": int(os.environ.get("CLICKHOUSE_MAX_CONNECTIONS", 100)),
+        "database": env("CLICKHOUSE_DATABASE", "default"),
+        "http_port": 8123,
+        "storage_sets": {
+            "cdc",
+            "discover",
+            "eap_items",
+            "events",
+            "events_ro",
+            "metrics",
+            "migrations",
+            "outcomes",
+            "querylog",
+            "sessions",
+            "transactions",
+            "profiles",
+            "functions",
+            "replays",
+            "generic_metrics_sets",
+            "generic_metrics_distributions",
+            "search_issues",
+            "generic_metrics_counters",
+            "spans",
+            "events_analytics_platform",
+            "group_attributes",
+            "generic_metrics_gauges",
+            "metrics_summaries",
+            "profile_chunks",
+        },
+        "single_node": False,
+        "cluster_name": "sentry-clickhouse",
+        "distributed_cluster_name": "sentry-clickhouse",
+      },
+    ]
+
+    # Redis Options
+    REDIS_HOST = "sentry-sentry-redis-master"
+    REDIS_PORT = 6379
+    REDIS_PASSWORD = env("REDIS_PASSWORD", "")
+    REDIS_DB = int(env("REDIS_DB", 1))
+
+
+    # No Python Extension Config Given

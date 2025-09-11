@@ -1,0 +1,35 @@
+---
+# Source: sentry/charts/kafka/templates/controller-eligible/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-kafka-controller-headless
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/version: 3.7.1
+    app.kubernetes.io/component: controller-eligible
+    app.kubernetes.io/part-of: kafka
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: tcp-interbroker
+      port: 9094
+      protocol: TCP
+      targetPort: interbroker
+    - name: tcp-client
+      port: 9092
+      protocol: TCP
+      targetPort: client
+    - name: tcp-controller
+      protocol: TCP
+      port: 9093
+      targetPort: controller
+  selector:
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: controller-eligible
+    app.kubernetes.io/part-of: kafka

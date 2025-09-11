@@ -1,0 +1,18 @@
+---
+# Source: sentry/charts/clickhouse/templates/svc-clickhouse-metrics.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-clickhouse-metrics
+  labels:
+    app.kubernetes.io/name: clickhouse-metrics
+    app.kubernetes.io/instance: sentry
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9116
+      targetPort: metrics
+      name: metrics
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: sentry

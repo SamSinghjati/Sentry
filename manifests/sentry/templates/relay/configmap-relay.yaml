@@ -1,0 +1,39 @@
+---
+# Source: sentry/templates/relay/configmap-relay.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentry-relay
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: relay
+    app.kubernetes.io/version: "25.8.0"
+data:
+  config.yml: |-
+    relay:
+      mode: managed
+      upstream: "http://sentry-web:9000/"
+      host: 0.0.0.0
+      port: 3000
+
+    processing:
+      enabled: true
+
+      kafka_config:
+        - name: "bootstrap.servers"
+          value: "sentry-kafka:9092"
+        - name: "message.max.bytes"
+          value: "50000000"
+        - name: security.protocol
+          value: "PLAINTEXT"
+      redis: "redis://sentry-sentry-redis-master:6379/0"
+      topics:
+        metrics_sessions: "ingest-metrics"
+
+
+    # No YAML relay config given

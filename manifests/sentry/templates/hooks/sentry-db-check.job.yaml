@@ -1,0 +1,92 @@
+---
+# Source: sentry/templates/hooks/sentry-db-check.job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sentry-db-check
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "-1"
+spec:
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: sentry-db-check
+      annotations:
+      labels:
+        app: sentry
+        release: "sentry"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-check
+          image: subfuzion/netcat:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Checking if clickhouse is up"
+              CLICKHOUSE_STATUS=0
+              while [ $CLICKHOUSE_STATUS -eq 0 ]; do
+                CLICKHOUSE_STATUS=1
+                CLICKHOUSE_REPLICAS=1
+                i=0; while [ $i -lt $CLICKHOUSE_REPLICAS ]; do
+                  CLICKHOUSE_HOST=sentry-clickhouse-$i.sentry-clickhouse-headless
+                  if ! nc -z "$CLICKHOUSE_HOST" 9000; then
+                    CLICKHOUSE_STATUS=0
+                    echo "$CLICKHOUSE_HOST is not available yet"
+                  fi
+                  i=$((i+1))
+                done
+                if [ "$CLICKHOUSE_STATUS" -eq 0 ]; then
+                  echo "Clickhouse not ready. Sleeping for 10s before trying again"
+                  sleep 10;
+                fi
+              done
+              echo "Clickhouse is up"
+
+              echo "Checking if kafka is up"
+              KAFKA_STATUS=0
+              while [ $KAFKA_STATUS -eq 0 ]; do
+                KAFKA_STATUS=1
+                KAFKA_REPLICAS=3
+                echo "Kafka Kraft is enabled, checking if Kraft controllers are up"
+                KRAFT_STATUS=0
+                while [ $KRAFT_STATUS -eq 0 ]; do
+                  KRAFT_STATUS=1
+                  i=0; while [ $i -lt $KAFKA_REPLICAS ]; do
+                    KRAFT_HOST=sentry-kafka-controller-$i.sentry-kafka-controller-headless
+                    if ! nc -z "$KRAFT_HOST" 9093; then
+                      KRAFT_STATUS=0
+                      echo "$KRAFT_HOST is not available yet"
+                    fi
+                    i=$((i+1))
+                  done
+                  if [ "$KRAFT_STATUS" -eq 0 ]; then
+                    echo "Kraft controllers not ready. Sleeping for 10s before trying again"
+                    sleep 10;
+                  fi
+                done
+                echo "Kraft controllers are up"
+                if [ "$KAFKA_STATUS" -eq 0 ]; then
+                  echo "Kafka not ready. Sleeping for 10s before trying again"
+                  sleep 10;
+                fi
+              done
+              echo "Kafka is up"
+          env:
+          resources:
+            limits:
+              memory: 64Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi

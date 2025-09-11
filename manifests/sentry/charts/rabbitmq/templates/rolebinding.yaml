@@ -1,0 +1,18 @@
+---
+# Source: sentry/charts/rabbitmq/templates/rolebinding.yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: sentry-rabbitmq-endpoint-reader
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/version: "3.11.18"
+subjects:
+  - kind: ServiceAccount
+    name: sentry-rabbitmq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sentry-rabbitmq-endpoint-reader

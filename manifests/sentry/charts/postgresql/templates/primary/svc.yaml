@@ -1,0 +1,24 @@
+---
+# Source: sentry/charts/postgresql/templates/primary/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-sentry-postgresql
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/name: sentry-postgresql
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/version: "15.3.0"
+    app.kubernetes.io/component: primary
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: tcp-postgresql
+      port: 5432
+      targetPort: tcp-postgresql
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: sentry-postgresql
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: primary

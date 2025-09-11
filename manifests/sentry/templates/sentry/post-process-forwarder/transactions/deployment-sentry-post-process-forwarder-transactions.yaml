@@ -1,0 +1,104 @@
+---
+# Source: sentry/templates/sentry/post-process-forwarder/transactions/deployment-sentry-post-process-forwarder-transactions.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-post-process-forward-transactions
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: sentry-post-process-forward-transactions
+    app.kubernetes.io/version: "25.8.0"
+  annotations:
+    meta.helm.sh/release-name: "sentry"
+    meta.helm.sh/release-namespace: "sentry"
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "10"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: sentry
+      release: "sentry"
+      role: sentry-post-process-forward-transactions
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/configYml: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+        checksum/sentryConfPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: d9fcc8cdfde6c9d735db76a4aabe20d7cc6a0fe5ea1dfa7cec6342cbf6c02a7b
+      labels:
+        app: sentry
+        release: "sentry"
+        role: sentry-post-process-forward-transactions
+        app.kubernetes.io/name: sentry
+        app.kubernetes.io/instance: sentry
+        app.kubernetes.io/component: sentry-post-process-forward-transactions
+        app.kubernetes.io/version: "25.8.0"
+    spec:
+      affinity:
+      containers:
+        - name: sentry-post-process-forward-transactions
+          image: "ghcr.io/getsentry/sentry:25.8.0"
+          imagePullPolicy: IfNotPresent
+          command: ["sentry"]
+          args:
+            - "run"
+            - "consumer"
+            - "post-process-forwarder-transactions"
+            - "--consumer-group"
+            - "post-process-forwarder"
+            - "--synchronize-commit-log-topic=snuba-transactions-commit-log"
+            - "--synchronize-commit-group"
+            - "transactions_group"
+            - "--healthcheck-file-path"
+            - "/tmp/health.txt"
+            - "--"
+          livenessProbe:
+            exec:
+              command:
+                - rm
+                - /tmp/health.txt
+            initialDelaySeconds: 5
+            periodSeconds: 320
+          env:
+            - name: SNUBA
+              value: http://sentry-snuba:1218
+            - name: VROOM
+              value: http://sentry-vroom:8085
+            - name: SENTRY_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-sentry-secret
+                  key: "key"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-sentry-postgresql
+                  key: postgres-password
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_NAME
+              value: "sentry"
+            - name: POSTGRES_HOST
+              value: "sentry-sentry-postgresql"
+            - name: POSTGRES_PORT
+              value: "5432"
+          volumeMounts:
+            - mountPath: /etc/sentry
+              name: config
+              readOnly: true
+            - mountPath: /var/lib/sentry/files
+              name: sentry-data
+          resources: {}
+      volumes:
+        - name: config
+          configMap:
+            name: sentry-sentry
+        - name: sentry-data
+          emptyDir: {}

@@ -1,0 +1,71 @@
+---
+# Source: sentry/templates/hooks/sentry-db-init.job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sentry-db-init
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "6"
+spec:
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: sentry-db-init
+      annotations:
+        checksum/configmap.yaml: d9fcc8cdfde6c9d735db76a4aabe20d7cc6a0fe5ea1dfa7cec6342cbf6c02a7b
+      labels:
+        app: sentry
+        release: "sentry"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: db-init-job
+          image: "ghcr.io/getsentry/sentry:25.8.0"
+          imagePullPolicy: IfNotPresent
+          command: ["sentry", "upgrade", "--noinput"]
+          env:
+            - name: SNUBA
+              value: http://sentry-snuba:1218
+            - name: VROOM
+              value: http://sentry-vroom:8085
+            - name: SENTRY_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-sentry-secret
+                  key: "key"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sentry-sentry-postgresql
+                  key: postgres-password
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_NAME
+              value: "sentry"
+            - name: POSTGRES_HOST
+              value: "sentry-sentry-postgresql"
+            - name: POSTGRES_PORT
+              value: "5432"
+          volumeMounts:
+            - mountPath: /etc/sentry
+              name: config
+              readOnly: true
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              cpu: 300m
+              memory: 2048Mi
+      volumes:
+        - name: config
+          configMap:
+            name: sentry-sentry

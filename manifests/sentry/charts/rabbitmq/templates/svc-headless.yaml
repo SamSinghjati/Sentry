@@ -1,0 +1,30 @@
+---
+# Source: sentry/charts/rabbitmq/templates/svc-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-rabbitmq-headless
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/version: "3.11.18"
+spec:
+  clusterIP: None
+  ports:
+    - name: epmd
+      port: 4369
+      targetPort: epmd
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+    - name: dist
+      port: 25672
+      targetPort: dist
+    - name: http-stats
+      port: 15672
+      targetPort: stats
+  selector:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: sentry
+  publishNotReadyAddresses: true

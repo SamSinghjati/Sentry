@@ -1,0 +1,65 @@
+---
+# Source: sentry/templates/hooks/snuba-migrate.job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sentry-snuba-migrate
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-delete-policy": "hook-succeeded,before-hook-creation"
+    "helm.sh/hook-weight": "5"
+spec:
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: sentry-snuba-migrate
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 5c8d42182f979a9f396975353f1b4f7c58ed658819a1fd6b8cf375c4757193ec
+      labels:
+        app: sentry
+        release: "sentry"
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: snuba-migrate
+          image: "ghcr.io/getsentry/snuba:25.8.0"
+          command: [snuba, migrations, migrate, --force]
+          env:
+            - name: LOG_LEVEL
+              value: debug
+            - name: SNUBA_SETTINGS
+              value: /etc/snuba/settings.py
+            - name: DEFAULT_BROKERS
+              value: "sentry-kafka:9092"
+            - name: KAFKA_SECURITY_PROTOCOL
+              value: "PLAINTEXT"
+            - name: CLICKHOUSE_MAX_CONNECTIONS
+              value: "100"
+            - name: REDIS_PORT
+              value: "6379"
+          envFrom:
+            - secretRef:
+                name: sentry-snuba-env
+          volumeMounts:
+            - mountPath: /etc/snuba
+              name: config
+              readOnly: true
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+            requests:
+              cpu: 700m
+              memory: 1Gi
+      volumes:
+        - name: config
+          configMap:
+            name: sentry-snuba

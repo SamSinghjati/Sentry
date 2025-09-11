@@ -1,0 +1,25 @@
+---
+# Source: sentry/charts/redis/templates/replicas/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-sentry-redis-replicas
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/name: sentry-redis
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/version: "7.0.11"
+    app.kubernetes.io/component: replica
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  sessionAffinity: None
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: redis
+      nodePort: null
+  selector:
+    app.kubernetes.io/name: sentry-redis
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: replica

@@ -1,0 +1,14 @@
+---
+# Source: sentry/charts/clickhouse/templates/configmap-users.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentry-clickhouse-users
+  labels:
+    app.kubernetes.io/name: clickhouse-users
+    app.kubernetes.io/instance: sentry-users
+data:
+  users.xml: |-
+    <?xml version="1.0"?>
+    <yandex>
+    </yandex>

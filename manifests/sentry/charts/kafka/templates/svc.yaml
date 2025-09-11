@@ -1,0 +1,25 @@
+---
+# Source: sentry/charts/kafka/templates/svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-kafka
+  namespace: "sentry"
+  labels:
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/version: 3.7.1
+    app.kubernetes.io/component: kafka
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: tcp-client
+      port: 9092
+      protocol: TCP
+      targetPort: client
+      nodePort: null
+  selector:
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: kafka

@@ -1,0 +1,56 @@
+---
+# Source: sentry/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sentry
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/version: "25.8.0"
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: "nginx"
+  rules:
+    - host: sentry-nginx
+      http:
+        paths:
+          - path: /api/store
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: sentry-relay
+                port:
+                  number: 3000
+          - path: /api/[1-9][0-9]*/(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: sentry-relay
+                port:
+                  number: 3000
+          - path: /api/0/relays/(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: sentry-relay
+                port:
+                  number: 3000
+          - path: "/"
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: sentry-web
+                port:
+                  number: 9000
+  tls:
+    - hosts:
+        - sentry-nginx
+      secretName: sentry-nginx-tls

@@ -1,0 +1,26 @@
+---
+# Source: sentry/templates/sentry/web/service-sentry-web.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-web
+  annotations:
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: web
+    app.kubernetes.io/version: "25.8.0"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9000
+      targetPort: 9000
+      protocol: TCP
+      name: sentry
+  selector:
+    app: sentry
+    role: web

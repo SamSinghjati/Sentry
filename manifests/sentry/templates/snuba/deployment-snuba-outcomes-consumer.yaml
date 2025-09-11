@@ -1,0 +1,90 @@
+---
+# Source: sentry/templates/snuba/deployment-snuba-outcomes-consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-snuba-outcomes-consumer
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: snuba-outcomes-consumer
+    app.kubernetes.io/version: "25.8.0"
+  annotations:
+    meta.helm.sh/release-name: "sentry"
+    meta.helm.sh/release-namespace: "sentry"
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "17"
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: sentry
+      release: "sentry"
+      role: snuba-outcomes-consumer
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/snubaSettingsPy: d5f85a6a8afbc55eebe23801e1a51a0fb4c0428c9a73ef6708d8dc83e079cd49
+        checksum/config.yaml: 5c8d42182f979a9f396975353f1b4f7c58ed658819a1fd6b8cf375c4757193ec
+      labels:
+        app: sentry
+        release: "sentry"
+        role: snuba-outcomes-consumer
+        app.kubernetes.io/name: sentry
+        app.kubernetes.io/instance: sentry
+        app.kubernetes.io/component: snuba-outcomes-consumer
+        app.kubernetes.io/version: "25.8.0"
+    spec:
+      affinity:
+      containers:
+        - name: sentry-snuba
+          image: "ghcr.io/getsentry/snuba:25.8.0"
+          imagePullPolicy: IfNotPresent
+          command:
+            - "snuba"
+            - "consumer"
+            - "--storage"
+            - "outcomes_raw"
+            - "--consumer-group"
+            - "snuba-consumers"
+            - "--max-batch-size"
+            - "3"
+            - "--health-check-file"
+            - "/tmp/health.txt"
+          livenessProbe:
+            exec:
+              command:
+                - rm
+                - /tmp/health.txt
+            initialDelaySeconds: 5
+            periodSeconds: 320
+          ports:
+            - containerPort: 1218
+          env:
+            - name: SNUBA_SETTINGS
+              value: /etc/snuba/settings.py
+            - name: DEFAULT_BROKERS
+              value: "sentry-kafka:9092"
+            - name: KAFKA_SECURITY_PROTOCOL
+              value: "PLAINTEXT"
+            - name: CLICKHOUSE_MAX_CONNECTIONS
+              value: "100"
+            - name: REDIS_PORT
+              value: "6379"
+          envFrom:
+            - secretRef:
+                name: sentry-snuba-env
+          volumeMounts:
+            - mountPath: /etc/snuba
+              name: config
+              readOnly: true
+          resources: {}
+      volumes:
+        - name: config
+          configMap:
+            name: sentry-snuba

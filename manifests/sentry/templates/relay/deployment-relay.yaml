@@ -1,0 +1,105 @@
+---
+# Source: sentry/templates/relay/deployment-relay.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentry-relay
+  labels:
+    app: sentry
+    chart: "sentry-27.2.4"
+    release: "sentry"
+    heritage: "Helm"
+    app.kubernetes.io/name: sentry
+    app.kubernetes.io/instance: sentry
+    app.kubernetes.io/component: relay
+    app.kubernetes.io/version: "25.8.0"
+  annotations:
+    meta.helm.sh/release-name: "sentry"
+    meta.helm.sh/release-namespace: "sentry"
+    "helm.sh/hook": "post-install,post-upgrade"
+    "helm.sh/hook-weight": "25"
+spec:
+  selector:
+    matchLabels:
+      app: sentry
+      release: "sentry"
+      role: relay
+  replicas: 1
+  revisionHistoryLimit: 10
+  template:
+    metadata:
+      annotations:
+        checksum/relay: 8074a66c015a8309dc9bdef7524b89bb223749847663f454012dba4e7ed06cc3
+        checksum/config.yaml: 21d8f37ac31a342b93a66fccd854fdc6dbdef66373eef0c1bd5d1d965e1caa65
+      labels:
+        app: sentry
+        release: "sentry"
+        role: relay
+        app.kubernetes.io/name: sentry
+        app.kubernetes.io/instance: sentry
+        app.kubernetes.io/component: relay
+        app.kubernetes.io/version: "25.8.0"
+    spec:
+      affinity:
+      initContainers:
+        - name: sentry-relay-init
+          image: "ghcr.io/getsentry/relay:25.8.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "credentials"
+            - "generate"
+          resources: {}
+          env:
+            - name: RELAY_PORT
+              value: '3000'
+          volumeMounts:
+            - name: credentials
+              mountPath: /work/.relay
+            - name: config
+              mountPath: /work/.relay/config.yml
+              subPath: config.yml
+              readOnly: true
+      containers:
+        - name: sentry-relay
+          image: "ghcr.io/getsentry/relay:25.8.0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: RELAY_PORT
+              value: '3000'
+          volumeMounts:
+            - name: credentials
+              mountPath: /work/.relay
+            - name: config
+              mountPath: /work/.relay/config.yml
+              subPath: config.yml
+              readOnly: true
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /api/relay/healthcheck/live/
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          readinessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /api/relay/healthcheck/ready/
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources: {}
+      volumes:
+        - name: config
+          configMap:
+            name: sentry-relay
+            defaultMode: 0644
+        - name: credentials
+          emptyDir: {}

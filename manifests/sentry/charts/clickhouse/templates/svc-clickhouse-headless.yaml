@@ -1,0 +1,27 @@
+---
+# Source: sentry/charts/clickhouse/templates/svc-clickhouse-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentry-clickhouse-headless
+  labels:
+    app.kubernetes.io/name: clickhouse-headless
+    app.kubernetes.io/instance: sentry-headless
+spec:
+  clusterIP: "None"
+  ports:
+    - port: 9000
+      targetPort: tcp-port
+      protocol: TCP
+      name: tcp-port
+    - port: 8123
+      targetPort: http-port
+      protocol: TCP
+      name: http-port
+    - port: 9009
+      targetPort: inter-http-port
+      protocol: TCP
+      name: inter-http-port
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: sentry
