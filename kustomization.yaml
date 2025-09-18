@@ -1,5 +1,4 @@
 resources:
-  - namespace.yaml
   - ./manifests/sentry/templates/hooks/snuba-migrate.job.yaml
   - ./manifests/sentry/templates/hooks/sentry-db-init.job.yaml
   - ./manifests/sentry/templates/hooks/user-create.yaml
