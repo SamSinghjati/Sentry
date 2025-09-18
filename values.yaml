@@ -2347,9 +2347,9 @@ postgresql:
   nameOverride: sentry-postgresql
   auth:
     database: sentry
-    username: postgress
-    password: "VeryStr0ngPassword!@#"
-    postgressPassword: "VeryStr0ngPassword!@#"
+    username: postgres
+    password: VHdHDgZpDH
+    postgressPassword: VHdHDgZpDH
   replication:
     enabled: false
     readReplicas: 2
