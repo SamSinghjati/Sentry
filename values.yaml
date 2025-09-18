@@ -2376,7 +2376,7 @@ externalPostgresql:
   # host: postgres
   port: 5432
   username: postgres
-  # password: postgres
+  password: my-secret-password
   # existingSecret: secret-name
   # set existingSecretKeys in a secret, if not specified, value from the secret won't be used
   # if externalPostgresql.existingSecret is used, externalPostgresql.existingSecretKeys.password must be specified.
@@ -2387,7 +2387,7 @@ externalPostgresql:
   #   port: port
   #   host: host
   database: sentry
-  # sslMode: require
+   sslMode: disable
   ## Default connection max age is 0 (unlimited connections)
   ## Set to a higher number to close connections after a period of time in seconds
   connMaxAge: 0
